@@ -1,6 +1,6 @@
 [project]
 name = "contrast-route-duplicates"
-version = "0.1.3"
+version = "0.1.4"
 description = "A command-line tool for analyzing duplicate route signatures in Contrast Security applications."
 authors = [
     { name = "Jonathan Harper", email = "39912347+jharper-sec@users.noreply.github.com" }

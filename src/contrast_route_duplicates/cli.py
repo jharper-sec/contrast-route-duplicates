@@ -18,10 +18,8 @@ from contrast_route_duplicates.config import load_config
 from contrast_route_duplicates.exceptions import ContrastAPIError
 from contrast_route_duplicates.utils import write_to_csv
 
-# Set up logging
 logger = logging.getLogger(__name__)
 
-# Initialize Typer app and Rich console
 app = typer.Typer(
     help="Analyze duplicate route signatures in Contrast Security applications"
 )
@@ -68,13 +66,11 @@ async def analyze_routes(
 ) -> None:
     """Analyze route signatures in a Contrast Security application."""
     try:
-        # Configure logging based on verbose flag
         log_level = logging.DEBUG if verbose else logging.INFO
         logging.basicConfig(level=log_level)
         root_logger = logging.getLogger()
         root_logger.setLevel(log_level)
 
-        # Load configuration from .env file
         config = load_config()
 
         console.print("\n[bold]Starting analysis...[/bold]")
@@ -92,24 +88,18 @@ async def analyze_routes(
             try:
                 duplicate_counts = await analyzer.analyze_signature_duplicates()
             except Exception as e:
-                console.print(
-                    f"[red bold]Error during analysis:[/red bold] {str(e).replace('[', '\\[').replace(']', '\\]')}"
-                )
+                error_msg = f"[red bold]Error during analysis:[/red bold] {str(e)}"
+                console.print(error_msg)
                 raise typer.Exit(1)
 
-            # Output to CSV if specified
             if csv_file:
                 write_to_csv(csv_file, duplicate_counts)
 
-            # Track statistics
             total_routes = sum(count for _, count in duplicate_counts)
             unique_signatures = len(duplicate_counts)
             duplicate_signatures = sum(1 for _, count in duplicate_counts if count > 1)
-            duplicate_routes = sum(
-                count - 1 for _, count in duplicate_counts if count > 1
-            )
+            duplicate_routes = sum(count - 1 for _, count in duplicate_counts if count > 1)
 
-            # Show summary
             console.print("\n")
 
             summary_table = Table(
@@ -124,9 +114,7 @@ async def analyze_routes(
 
             summary_table.add_row("Total routes", f"{total_routes:,}")
             summary_table.add_row("Unique signatures", f"{unique_signatures:,}")
-            summary_table.add_row(
-                "Signatures with duplicates", f"{duplicate_signatures:,}"
-            )
+            summary_table.add_row("Signatures with duplicates", f"{duplicate_signatures:,}")
             summary_table.add_row("Total duplicate routes", f"{duplicate_routes:,}")
             summary_table.add_row(
                 "Duplicate percentage",
@@ -136,27 +124,21 @@ async def analyze_routes(
             console.print(summary_table)
 
             if csv_file:
-                console.print(
-                    f"\nDetailed results have been written to: [cyan]{csv_file}[/cyan]"
-                )
+                console.print(f"\nDetailed results have been written to: [cyan]{csv_file}[/cyan]")
 
     except ValueError as e:
-        logger.error(str(e))
-        console.print(
-            f"[red]Configuration error: {str(e).replace('[', '\\[').replace(']', '\\]')}[/red]"
-        )
+        error_msg = f"[red]Configuration error: {str(e)}[/red]"
+        console.print(error_msg)
         raise typer.Exit(1)
     except ContrastAPIError as e:
         error_details = f": {e.response_text}" if e.response is not None else ""
-        logger.error(f"Error accessing the API: {e}{error_details}")
-        console.print(
-            f"[red]Error accessing the API: {str(e).replace('[', '\\[').replace(']', '\\]')}[/red]"
-        )
+        error_msg = f"[red]Error accessing the API: {str(e)}{error_details}[/red]"
+        console.print(error_msg)
         raise typer.Exit(1)
     except Exception as e:
         logger.error(f"An unexpected error occurred: {e}", exc_info=True)
-        error_message = f"An error occurred: {e}"
-        console.print(f"[red]{error_message}[/red]")
+        error_msg = f"[red]An error occurred: {str(e)}[/red]"
+        console.print(error_msg)
         raise typer.Exit(1)
 
 
