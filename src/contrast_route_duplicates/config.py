@@ -4,17 +4,23 @@ Handles loading and validating environment variables.
 """
 
 import os
+import logging
+from pathlib import Path
 from typing import Dict, Final, Optional
 
 from dotenv import load_dotenv
 
 from contrast_route_duplicates.models import EnvConfig
 
+logger = logging.getLogger(__name__)
 
 def load_config() -> EnvConfig:
-    """Load configuration from .env file"""
-    load_dotenv()
-
+    """Load configuration from environment variables and/or .env file"""
+    # Try to load from .env if it exists, but environment variables take precedence
+    if Path('.env').exists():
+        logger.debug("Found .env file, loading...")
+        load_dotenv(Path('.env'))
+    
     required_vars: Final[Dict[str, str]] = {
         "CONTRAST_BASE_URL": "Base URL",
         "CONTRAST_ORG_UUID": "Organization UUID",
@@ -27,23 +33,21 @@ def load_config() -> EnvConfig:
 
     for var, description in required_vars.items():
         value = os.getenv(var)
-        if not value:
+        if value:
+            logger.debug(f"Found {var} from {'environment' if var in os.environ else '.env file'}")
+        else:
             missing_vars.append(f"{var} ({description})")
         config[var] = value
 
     if missing_vars:
         raise ValueError(
-            "Missing required environment variables in .env file:\n"
+            "Missing required variables (check both environment and .env file):\n"
             f"{chr(10).join(missing_vars)}"
         )
 
-    # Cast to EnvConfig since we've verified all values exist
     validated_config: Dict[str, str] = {
         k: v for k, v in config.items() if v is not None and k in required_vars
     }
-
-    if set(validated_config.keys()) != set(required_vars.keys()):
-        raise ValueError("Configuration validation failed: missing required keys")
 
     return EnvConfig(
         CONTRAST_BASE_URL=validated_config["CONTRAST_BASE_URL"],
